@@ -1,4 +1,3 @@
-# window.py
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter.ttk import Button, Label, Entry
@@ -7,7 +6,7 @@ from main import start_parsing
 class App:
     def __init__(self, root):
         self.root = root
-        self.root.title("Main Menu")
+        self.root.title("Меню")
         self.root.geometry("400x300")
         self.root.resizable(False, False)
 
@@ -21,8 +20,7 @@ class App:
         buttons = [
             ("Открыть Excel файл", self.open_file),
             ("Спарсить Excel файл", self.parse_excel),
-            ("Подключить к базе данных", self.configure_db_connection),
-            ("Админ", self.admin_config)
+            ("Подключиться к базе", self.admin_config)
         ]
 
         for i, (text, command) in enumerate(buttons):
@@ -35,27 +33,27 @@ class App:
             btn.place(x=100, y=30 + i * 50, width=200, height=30)
 
     def open_file(self):
-        filetypes = [("Excel files", "*.xlsx")]
+        filetypes = [("Excel файл", "*.xlsx")]
         self.filename = filedialog.askopenfilename(
-            title="Select Excel File", filetypes=filetypes
+            title="Выберите Excel файл", filetypes=filetypes
         )
         if self.filename:
-            messagebox.showinfo("File Selected", f"Selected File: {self.filename}")
+            messagebox.showinfo("Файл выбран", f"Выбранный файл: {self.filename}")
         else:
-            messagebox.showwarning("No File", "No file selected.")
+            messagebox.showwarning("Нет файла", "Файл не выбран")
 
     def parse_excel(self):
         if not self.filename:
-            messagebox.showerror("Error", "No Excel file selected.")
+            messagebox.showerror("ОШИБКА", " Выбран не Excel - файл.")
             return
 
         try:
-            # Call your parsing function here
             print(f"Parsing file: {self.filename}")
             start_parsing(self.filename, self.return_connection_string())
-            messagebox.showinfo("Success", "File parsed successfully.")
+            #messagebox.showinfo("Успешно", "Файл успешно спарсен")
+            messagebox.showerror("Ошибка", f"Ошибка парсинга файла")
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to parse file: {e}")
+            messagebox.showerror("Ошибка", f"Ошибка парсинга файла: {e}")
 
     def configure_db_connection(self):
         config_window = tk.Toplevel(self.root)
@@ -76,12 +74,12 @@ class App:
         Label(config_window, text="Password:").place(x=20, y=130)
         password_entry = Entry(config_window, width=25, show="*")
         password_entry.place(x=140, y=130)
-        password_entry.insert(0, "")
+        password_entry.insert(0, "ф")
 
         Label(config_window, text="Database:").place(x=20, y=130)
         database_entry = Entry(config_window, width=25, show="*")
         database_entry.place(x=140, y=130)
-        database_entry.insert(0, "postgres")
+        database_entry.insert(0, "123456")
 
         def submit():
             self.database_host = url_entry.get()
@@ -91,7 +89,7 @@ class App:
                 "database": database_entry.get()
             }
             config_window.destroy()
-            messagebox.showinfo("Success", "Database configuration updated.")
+            messagebox.showinfo("Успешно", "Конфигурация базы данных обновлена")
 
         Button(
             config_window,
@@ -102,11 +100,11 @@ class App:
     def admin_config(self):
         self.db_properties = {
             "user": "postgres",
-            "password": "",
+            "password": "123456",
             "database": "postgres"
         }
         self.database_host = "localhost"
-        messagebox.showinfo("Admin Config", "Admin configuration applied.")
+        messagebox.showinfo("Подключение", "Вход в базу совершен")
     
     def return_connection_string(self):
         print(f"host='{self.database_host}' dbname='{self.db_properties["database"]}' user='{self.db_properties["user"]}' password='{self.db_properties["password"]}'")

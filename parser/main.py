@@ -1,7 +1,7 @@
-# main.py
 import openpyxl
 from psycopg2 import connect, sql
 from psycopg2.extras import execute_values
+
 
 class Titular:
     def __init__(self, profile, beginning_year, fgos, program):
@@ -13,6 +13,7 @@ class Titular:
     def __repr__(self):
         return f"{self.profile} ({self.program})"
 
+
 class Competention:
     def __init__(self, sub_index, index, description, type_):
         self.sub_index = sub_index
@@ -23,10 +24,11 @@ class Competention:
     def __repr__(self):
         return f"{self.index}: {self.description}"
 
+
 class Plan:
     def __init__(self, count_in_plan, index, name, exam, midterm, kp, coursework, controlwork, midtermwithmark,
                  expert, factual, expert_hour, plan, controlwork_hour, aud, sr, control, preparation,
-                 courses_semesters, faculty_code, faculty_name):
+                 sem1, sem2, sem3, sem4, sem5, sem6, sem7, sem8, faculty_code, faculty_name):
         self.count_in_plan = count_in_plan
         self.index = index
         self.name = name
@@ -45,9 +47,17 @@ class Plan:
         self.sr = sr
         self.control = control
         self.preparation = preparation
-        self.courses_semesters = courses_semesters
+        self.sem1 = sem1
+        self.sem2 = sem2
+        self.sem3 = sem3
+        self.sem4 = sem4
+        self.sem5 = sem5
+        self.sem6 = sem6
+        self.sem7 = sem7
+        self.sem8 = sem8
         self.faculty_code = faculty_code
         self.faculty_name = faculty_name
+
 
 PLAN_NAMES = {
     "Экзамен": "exam",
@@ -58,67 +68,84 @@ PLAN_NAMES = {
     "Контр.": "controlwork",
 }
 
+
 def parse_titular(workbook):
     sheet = workbook["Titul"]
-    return Titular(
-        sheet.cell(row=20, column=3).value,
-        int(sheet.cell(row=30, column=21).value),
-        sheet.cell(row=32, column=21).value,
-        sheet.cell(row=21, column=3).value
-    )
+    profile = sheet.cell(row=30, column=4).value
+    beginning_year_value = sheet.cell(row=40, column=23).value
+    fgos = sheet.cell(row=42, column=23).value
+    program = sheet.cell(row=29, column=4).value
+
+    if not profile:
+        raise ValueError("Profile value is missing in the Titul sheet")
+    if beginning_year_value is None:
+        raise ValueError("Beginning year value is missing in the Titul sheet")
+    try:
+        beginning_year = int(beginning_year_value)
+    except ValueError:
+        raise ValueError(f"Invalid beginning year value: {beginning_year_value}")
+    if not fgos:
+        raise ValueError("FGOS value is missing in the Titul sheet")
+    if not program:
+        raise ValueError("Program value is missing in the Titul sheet")
+
+    return Titular(profile, beginning_year, fgos, program)
+
 
 def parse_competentions(workbook):
     sheet = workbook["Comp"]
     competention_list = []
-    i = 2
-    while i <= sheet.max_row:
-        row = sheet[i]
-        sub_index = row[0].value or ""
-        index = row[1].value or ""
-        description = row[4].value or ""
-        type_ = row[5].value or ""
+    for i in range(2, sheet.max_row + 1):
+        sub_index = sheet.cell(row=i, column=2).value or ""
+        index = sheet.cell(row=i, column=3).value or ""
+        description = sheet.cell(row=i, column=5).value or ""
+        type_ = sheet.cell(row=i, column=6).value or ""
         if description:
             competention_list.append(Competention(sub_index, index, description, type_))
-        i += 1
     return competention_list
 
-def parse_plans(workbook, program_type):
+
+def parse_plans(workbook):
     sheet = workbook["PlanSvod"]
-    semester_amount = {"бакалавриата": 8, "магистратуры": 4, "специалитета": 12}.get(program_type, 0)
     plans = []
 
     for i in range(6, sheet.max_row + 1):
         row = sheet[i]
         if row[0].value in ("+", "-"):
-            courses_semesters = [
-                row[19 + semester].value for semester in range(semester_amount)
-            ]
             plans.append(
                 Plan(
-                    count_in_plan=row[0].value == "+",
-                    index=row[1].value,
-                    name=row[2].value,
-                    exam=row[3].value,
-                    midterm=row[4].value,
-                    kp=row[5].value,
-                    coursework=row[6].value,
-                    controlwork=row[7].value,
-                    midtermwithmark=row[8].value,
-                    expert=row[9].value,
-                    factual=row[10].value,
-                    expert_hour=row[11].value,
-                    plan=row[12].value,
-                    controlwork_hour=row[13].value,
-                    aud=row[14].value,
-                    sr=row[15].value,
-                    control=row[16].value,
-                    preparation=row[17].value,
-                    courses_semesters=courses_semesters,
-                    faculty_code=row[19 + semester_amount].value,
-                    faculty_name=row[20 + semester_amount].value,
+                    count_in_plan=row[0].value,
+                    index=f"{row[2].value or ''} {row[3].value or ''}".strip(),
+                    name=row[4].value or "",
+                    exam=row[6].value or "",
+                    midterm=row[8].value or "",
+                    midtermwithmark=row[10].value or "",
+                    kp=row[12].value or "",
+                    coursework=row[18].value or "",
+                    controlwork=row[10].value or "",
+                    expert=row[18].value or "",
+                    factual=row[20].value or "",
+                    expert_hour=row[22].value or "",
+                    plan=row[24].value or "",
+                    controlwork_hour=row[26].value or "",
+                    aud=row[28].value or "",
+                    sr=row[30].value or "",
+                    control=row[32].value or "",
+                    preparation=row[34].value or "",
+                    sem1=row[36].value or "",
+                    sem2=row[38].value or "",
+                    sem3=row[40].value or "",
+                    sem4=row[42].value or "",
+                    sem5=row[44].value or "",
+                    sem6=row[46].value or "",
+                    sem7=row[48].value or "",
+                    sem8=row[50].value or "",
+                    faculty_code=row[52].value or "",
+                    faculty_name=row[54].value or "",
                 )
             )
     return plans
+
 
 def create_tables(conn):
     with conn.cursor() as cur:
@@ -141,7 +168,7 @@ def create_tables(conn):
         """)
         cur.execute("""
             CREATE TABLE plans (
-                count_in_plan BOOLEAN,
+                count_in_plan VARCHAR,
                 index VARCHAR,
                 name VARCHAR,
                 exam VARCHAR,
@@ -159,11 +186,19 @@ def create_tables(conn):
                 sr VARCHAR,
                 control VARCHAR,
                 preparation VARCHAR,
-                courses_semesters TEXT[],
+                sem1 VARCHAR,
+                sem2 VARCHAR,
+                sem3 VARCHAR,
+                sem4 VARCHAR,
+                sem5 VARCHAR,
+                sem6 VARCHAR,
+                sem7 VARCHAR,
+                sem8 VARCHAR,
                 faculty_code VARCHAR,
                 faculty_name VARCHAR
             );
         """)
+
 
 def insert_data(conn, titular, competentions, plans):
     with conn.cursor() as cur:
@@ -183,21 +218,46 @@ def insert_data(conn, titular, competentions, plans):
 
         plan_values = [
             (
-                plan.count_in_plan, plan.index, plan.name, plan.exam, plan.midterm, plan.kp,
-                plan.coursework, plan.controlwork, plan.midtermwithmark, plan.expert,
-                plan.factual, plan.expert_hour, plan.plan, plan.controlwork_hour, plan.aud,
-                plan.sr, plan.control, plan.preparation, plan.courses_semesters,
-                plan.faculty_code, plan.faculty_name
+                plan.count_in_plan,
+                plan.index or "",
+                plan.name or "",
+                plan.exam or "",
+                plan.midterm or "",
+                plan.kp or "",
+                plan.coursework or "",
+                plan.controlwork or "",
+                plan.midtermwithmark or "",
+                plan.expert or "",
+                plan.factual or "",
+                plan.expert_hour or "",
+                plan.plan or "",
+                plan.controlwork_hour or "",
+                plan.aud or "",
+                plan.sr or "",
+                plan.control or "",
+                plan.preparation or "",
+                plan.sem1 or "",
+                plan.sem2 or "",
+                plan.sem3 or "",
+                plan.sem4 or "",
+                plan.sem5 or "",
+                plan.sem6 or "",
+                plan.sem7 or "",
+                plan.sem8 or "",
+                plan.faculty_code or "",
+                plan.faculty_name or "",
             )
             for plan in plans
         ]
+
         execute_values(
             cur,
             "INSERT INTO plans (count_in_plan, index, name, exam, midterm, kp, coursework, "
             "controlwork, midtermwithmark, expert, factual, expert_hour, plan, controlwork_hour, "
-            "aud, sr, control, preparation, courses_semesters, faculty_code, faculty_name) VALUES %s",
+            "aud, sr, control, preparation, sem1,sem2,sem3,sem4,sem5,sem6,sem7,sem8, faculty_code, faculty_name) VALUES %s",
             plan_values,
         )
+
 
 def start_parsing(filename, connection_string):
     conn = connect(connection_string)
@@ -205,7 +265,7 @@ def start_parsing(filename, connection_string):
 
     titular = parse_titular(workbook)
     competentions = parse_competentions(workbook)
-    plans = parse_plans(workbook, titular.program)
+    plans = parse_plans(workbook)
 
     create_tables(conn)
     insert_data(conn, titular, competentions, plans)
